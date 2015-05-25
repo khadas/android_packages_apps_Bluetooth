@@ -296,6 +296,7 @@ public class BluetoothOppObexServerSession extends ServerRequestHandler implemen
         if (needConfirm) {
             Intent in = new Intent(BluetoothShare.INCOMING_FILE_CONFIRMATION_REQUEST_ACTION);
             in.setClassName(Constants.THIS_PACKAGE_NAME, BluetoothOppReceiver.class.getName());
+            in.setData(contentUri);
             mContext.sendBroadcast(in);
         }
 
