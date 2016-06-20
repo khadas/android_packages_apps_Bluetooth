@@ -330,7 +330,7 @@
                 <action android:name="android.bluetooth.IBluetoothPan" />
             </intent-filter>
         </service>
-    <service
+        <service
             android:process="@string/process"
             android:name = ".hfpclient.HeadsetClientService"
             android:enabled="@bool/profile_supported_hfpclient">
@@ -338,5 +338,16 @@
                 <action android:name="android.bluetooth.IBluetoothHeadsetClient" />
             </intent-filter>
         </service>
+        <receiver
+            android:exported="true"
+            android:name=".btservice.BluetoothAutoPairReceiver"
+            android:enabled="true">
+                <intent-filter android:priority="1000">
+                    <action android:name="android.intent.action.BOOT_COMPLETED" />
+                </intent-filter>
+         </receiver>
+         <service
+             android:name = ".btservice.BluetoothAutoPairService">
+         </service>
     </application>
 </manifest>
