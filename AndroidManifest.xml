@@ -349,5 +349,13 @@
          <service
              android:name = ".btservice.BluetoothAutoPairService">
          </service>
+    <service
+            android:process="@string/process"
+            android:name = ".rtkbt.RtkbtService"
+            android:enabled="@bool/profile_supported_rtkbt">
+            <intent-filter>
+                <action android:name="android.bluetooth.IBluetoothRtkbt" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

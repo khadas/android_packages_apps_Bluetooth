@@ -70,7 +70,7 @@ final class AdapterState extends StateMachine {
     private static final int DISABLE_TIMEOUT_DELAY = 8000;
     private static final int BREDR_START_TIMEOUT_DELAY = 4000;
     //BLE_START_TIMEOUT can happen quickly as it just a start gattservice
-    private static final int BLE_START_TIMEOUT_DELAY = 2000; //To start GattService
+    private static final int BLE_START_TIMEOUT_DELAY = 8000; //To start GattService
     private static final int BLE_STOP_TIMEOUT_DELAY = 2000;
     //BREDR_STOP_TIMEOUT can < STOP_TIMEOUT
     private static final int BREDR_STOP_TIMEOUT_DELAY = 4000;

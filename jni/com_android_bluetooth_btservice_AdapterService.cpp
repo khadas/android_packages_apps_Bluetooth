@@ -1245,6 +1245,11 @@ jint JNI_OnLoad(JavaVM *jvm, void *reserved)
         ALOGE("jni sdp registration failure: %d", status);
         return JNI_ERR;
     }
-
+#ifdef BLUETOOTH_RTK_API
+    if ((status = android::register_com_android_bluetooth_rtkbt(e)) < 0) {
+        ALOGE("jni rtkbt registration failure: %d", status);
+        return JNI_ERR;
+    }
+#endif
     return JNI_VERSION_1_6;
 }

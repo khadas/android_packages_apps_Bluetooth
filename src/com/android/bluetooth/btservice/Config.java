@@ -40,6 +40,7 @@ import com.android.bluetooth.pan.PanService;
 import com.android.bluetooth.gatt.GattService;
 import com.android.bluetooth.map.BluetoothMapService;
 import com.android.bluetooth.sap.SapService;
+import com.android.bluetooth.rtkbt.RtkbtService;
 
 public class Config {
     private static final String TAG = "AdapterServiceConfig";
@@ -50,6 +51,7 @@ public class Config {
     //Do not inclue OPP and PBAP, because their services
     //are not managed by AdapterService
     private static final Class[] PROFILE_SERVICES = {
+        RtkbtService.class,
         HeadsetService.class,
         A2dpService.class,
         A2dpSinkService.class,
@@ -66,6 +68,7 @@ public class Config {
      * Resource flag to indicate whether profile is supported or not.
      */
     private static final int[]  PROFILE_SERVICES_FLAG = {
+        R.bool.profile_supported_rtkbt,
         R.bool.profile_supported_hs_hfp,
         R.bool.profile_supported_a2dp,
         R.bool.profile_supported_a2dp_sink,
