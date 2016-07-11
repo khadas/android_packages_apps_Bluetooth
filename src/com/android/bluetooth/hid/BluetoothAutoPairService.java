@@ -1,4 +1,4 @@
-package com.android.bluetooth.btservice;
+package com.android.bluetooth.hid;
 
 import android.annotation.SuppressLint;
 import android.app.IntentService;
@@ -71,8 +71,10 @@ public class BluetoothAutoPairService extends IntentService {
         mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
+            Log("No bluetooth!");
             return false;
         } else {
+            Log("Bluetooth exits!");
             if (!mBluetoothAdapter.isEnabled()) {
                 mBluetoothAdapter.enable();
             }
@@ -197,11 +199,14 @@ public class BluetoothAutoPairService extends IntentService {
             } else if(BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
                 Log("ACTION_FOUND!");
                 BluetoothDevice btDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log("btDevice = " + btDevice.getName() + " Address=" + btDevice.
+                                    getAddress() + " class=" + btDevice.
+                                    getBluetoothClass().toString());
                 if (btDevice != null) {
                     if (isSpecialDevice(btDevice)) {
                         mBluetoothAdapter.cancelDiscovery();
                         if (btDevice.getBondState() == BluetoothDevice.BOND_NONE) {
-                            Log("Jten Name=" + btDevice.getName() + " Address=" + btDevice.
+                            Log("RemoteDevice = " + btDevice.getName() + " Address=" + btDevice.
                                     getAddress() + " class=" + btDevice.
                                     getBluetoothClass().toString());
                             RemoteDevice = mBluetoothAdapter.
@@ -218,13 +223,16 @@ public class BluetoothAutoPairService extends IntentService {
                 }
             } else if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())) {
                 Log("ACTION_BOND_STATE_CHANGED!");
-                if (RemoteDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
-                    Log("bond Success!");
-                    try {
-                        connected(RemoteDevice);
-                    } catch (Exception e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                if (RemoteDevice != null)
+                {
+                    if (RemoteDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
+                        Log("bond Success!");
+                        try {
+                            connected(RemoteDevice);
+                        } catch (Exception e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

@@ -340,16 +340,16 @@
         </service>
         <receiver
             android:exported="true"
-            android:name=".btservice.BluetoothAutoPairReceiver"
+            android:name=".hid.BluetoothAutoPairReceiver"
             android:enabled="true">
                 <intent-filter android:priority="1000">
                     <action android:name="android.intent.action.BOOT_COMPLETED" />
                 </intent-filter>
-         </receiver>
-         <service
-             android:name = ".btservice.BluetoothAutoPairService">
-         </service>
-    <service
+        </receiver>
+        <service
+             android:name = ".hid.BluetoothAutoPairService">
+        </service>
+        <service
             android:process="@string/process"
             android:name = ".rtkbt.RtkbtService"
             android:enabled="@bool/profile_supported_rtkbt">

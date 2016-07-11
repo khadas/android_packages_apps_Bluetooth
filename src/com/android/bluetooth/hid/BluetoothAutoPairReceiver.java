@@ -1,8 +1,9 @@
-package com.android.bluetooth.btservice;
+package com.android.bluetooth.hid;
 
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.os.SystemProperties;
 import android.content.BroadcastReceiver;
 
 public class BluetoothAutoPairReceiver extends BroadcastReceiver {
@@ -20,8 +21,13 @@ public class BluetoothAutoPairReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             Log("Received ACTION_BOOT_COMPLETED");
-            Intent serviceintent = new Intent(context, BluetoothAutoPairService.class);
-            context.startService(serviceintent);
+            if (SystemProperties.get("ro.autoconnectbt.isneed").equals("true")) {
+                Log("Need autoconnectBT!");
+                Intent serviceintent = new Intent(context, BluetoothAutoPairService.class);
+                context.startService(serviceintent);
+            } else {
+                Log("No need autoconnectBT!");
+            }
         }
     }
 }
