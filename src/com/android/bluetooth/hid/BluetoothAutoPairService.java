@@ -14,7 +14,8 @@ import android.bluetooth.BluetoothInputDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.IntentFilter;
 import android.os.SystemProperties;
-
+import java.util.Timer;
+import java.util.TimerTask;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.Set;
@@ -25,12 +26,15 @@ public class BluetoothAutoPairService extends IntentService {
     private static BluetoothDevice RemoteDevice;
     private String mBtMacPrefix;
     private String mBtClass;
+    private String mBtCallback;
     private BluetoothInputDevice mService = null;
     private Context mContext = null;
-    private static final boolean DEBUG = true;
-
-    private BluetoothAdapter mBluetoothAdapter;
-
+    private static final boolean DEBUG = false;
+    private BluetoothAdapter mBluetoothAdapter = null;
+    private boolean scanState = false;
+    private boolean scanFlag = false;
+    private static Timer timer = null;
+    static final long SNAPSHOT_INTERVAL = 30 * 1000;
     private void Log(String msg) {
         if (DEBUG) {
             Log.i(TAG, msg);
@@ -45,197 +49,173 @@ public class BluetoothAutoPairService extends IntentService {
             return;
         }
         if (initBt(this)) {
-            while (!isSpecialDevicePaired()) {
-                pairSpecialDevice();
-                while (mBluetoothAdapter.isDiscovering()) {
-                    try {
-                        Thread.sleep(100);
-                    } catch(Exception e) {
-
-                    }
-                }
-                //wait sometime for pairing and connecting
-                try {
-                    Thread.sleep(5000);
-                } catch(Exception e) {
-
+            try {
+                Thread.sleep(5000);
+            } catch(Exception e) {
+              e.printStackTrace();
+            }
+            timer = new Timer();
+            timer.schedule(new TimerTask() {
+            public void run() {
+                try{
+                   scanState=true;
+                }catch(Exception e) {
+                   e.printStackTrace();
                 }
             }
-            uninitBt(this);
+            }, SNAPSHOT_INTERVAL, SNAPSHOT_INTERVAL );
+            if (isSpecialDevicePaired())  {
+                Log("Hasfound SpecialDevicePaired!");
+            }
+            while (!scanState) {
+                if (!mBluetoothAdapter.isDiscovering()) {
+                    mBluetoothAdapter.startLeScan(mLeScanCallback);
+                }
+            }
+            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            Log("Cancel Scan!");
+            if ( scanFlag == true ) {
+                try {
+                    Thread.sleep(5000);
+                    connected(RemoteDevice);
+                } catch(Exception e) {}
+            }
+            Log("Exit Services...!");
         }
-        Log("onHandleIntent end");
     }
-
+    private boolean getSpecialDeviceInfo() {
+        mBtMacPrefix = SystemProperties.get("ro.autoconnectbt.macprefix");
+        Log("getSpecialDeviceInfo mBtMacPrefix:"+mBtMacPrefix);
+        mBtClass = SystemProperties.get("ro.autoconnectbt.btclass");
+        Log("getSpecialDeviceInfo mBtClass:"+mBtClass);
+        return (!mBtMacPrefix.isEmpty() && !mBtClass.isEmpty());
+    }
+    private boolean isSpecialDevice(BluetoothDevice bd) {
+        //return bd.getAddress().startsWith(mBtMacPrefix) &&
+        //    bd.getBluetoothClass().toString().equals(mBtClass);
+        return bd.getAddress().startsWith(mBtMacPrefix);
+    }
+    private BluetoothAdapter.LeScanCallback mLeScanCallback =
+    new BluetoothAdapter.LeScanCallback(){
+        @Override
+        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord){
+        if ( device.getName() != mBtCallback ) {
+                mBtCallback = device.getName();
+                Log("BluetoothDevice = " + device.getName() +
+                " Address=" + device.getAddress() +
+                " class=" + device.getBluetoothClass().toString());
+                BluetoothDevice btDevice=device;
+                if (btDevice != null) {
+                    if (isSpecialDevice(btDevice)) {
+                        Log("Scan result isSpecialDevice!");
+                        if (btDevice.getBondState() == BluetoothDevice.BOND_NONE) {
+                            Log("Device no bond!");
+                            Log("Find remoteDevice and parm: name= " + btDevice.getName() +
+                            " Address=" + btDevice.getAddress() +
+                            " class=" + btDevice.getBluetoothClass().toString());
+                            RemoteDevice = mBluetoothAdapter.getRemoteDevice(btDevice.getAddress());
+                            try {
+                                Log("Device start bond...");
+                                if ( createBond( RemoteDevice.getClass(), RemoteDevice ) ) {
+                                    timer.cancel();
+                                    scanFlag=true;
+                                    scanState=true;
+                                    Log("RemoteDevice bond ok!");
+                                }
+                                else
+                                {
+                                    Log("RemoteDevice bond failed!");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            Log("Device has bond");
+                            scanState=true;
+                        }
+                    }
+                }
+            }
+        }
+    };
+    private void connected(BluetoothDevice device) throws Exception {
+        if ( mService != null && device != null ) {
+            Log("Connecting to target: " + device.getAddress());
+            if (mService.connect(device)) {
+                mService.setPriority( device, BluetoothProfile.PRIORITY_AUTO_CONNECT );
+                timer.cancel();
+            }
+            else{
+                Log("connect no!");
+            }
+        }
+        else{
+            Log("mService or device no work!");
+        }
+    }
+    static public boolean createBond(Class btClass,BluetoothDevice device) throws Exception {
+        Method createBondMethod = btClass.getMethod("createBond");
+        Boolean returnValue = (Boolean) createBondMethod.invoke(device);
+        return returnValue.booleanValue();
+    }
     private boolean initBt(Context context) {
-        Log("initBt()");
         mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
-            Log("No bluetooth!");
+            Log("No bluetooth device!");
             return false;
         } else {
-            Log("Bluetooth exits!");
+            Log("Bluetooth device exits!");
             if (!mBluetoothAdapter.isEnabled()) {
                 mBluetoothAdapter.enable();
             }
         }
         if (!mBluetoothAdapter.getProfileProxy(mContext, mServiceConnection,
                 BluetoothProfile.INPUT_DEVICE)) {
-            Log("failed()");
+            Log("Bluetooth getProfileProxy failed!");
         }
-        IntentFilter BtFilter = new IntentFilter();
-        BtFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        BtFilter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
-        registerReceiver(BluetoothReciever, BtFilter);
-
-        IntentFilter BtDiscoveryFilter = new IntentFilter();
-        BtDiscoveryFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        BtDiscoveryFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        BtDiscoveryFilter.addAction(BluetoothDevice.ACTION_FOUND);
-        BtDiscoveryFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-        registerReceiver(BtDiscoveryReceiver, BtDiscoveryFilter);
-
         return true;
     }
+    private BluetoothProfile.ServiceListener mServiceConnection =
+            new BluetoothProfile.ServiceListener() {
 
-    private void uninitBt(Context context) {
-        if (mBluetoothAdapter.isDiscovering()) {
-            mBluetoothAdapter.cancelDiscovery();
+        @Override
+        public void onServiceDisconnected(int profile) {
+            Log("Bluetooth service proxy disconnected");
         }
-        unregisterReceiver(BluetoothReciever);
-        unregisterReceiver(BtDiscoveryReceiver);
-    }
 
-    private boolean getSpecialDeviceInfo() {
-        mBtMacPrefix = SystemProperties.get("ro.autoconnectbt.macprefix");
-        mBtClass = SystemProperties.get("ro.autoconnectbt.btclass");
-        return (!mBtMacPrefix.isEmpty() && !mBtClass.isEmpty());
-    }
+        @Override
+        public void onServiceConnected(int profile, BluetoothProfile proxy) {
+            if (DEBUG) {
+                Log("Bluetooth service proxy connected");
+            }
+            mService = (BluetoothInputDevice)proxy;
+        }
+    };
 
+    public BluetoothAutoPairService() {
+        super("HelloIntentService");
+    }
     private boolean isSpecialDevicePaired() {
         Set<BluetoothDevice> bts = mBluetoothAdapter.getBondedDevices();
         Iterator<BluetoothDevice> iterator = bts.iterator();
         while (iterator.hasNext()) {
             BluetoothDevice bd = iterator.next();
             if (isSpecialDevice(bd)) {
+            Log("RemoteDevice has bond: name=" + bd.getName() +
+                " Address=" + bd.getAddress() +
+                " class=" + bd.getBluetoothClass().toString());
                 try {
-                    connected(RemoteDevice);
-                    Log("return true");
-                    return true;
+                    timer.cancel();
+                    scanState=true;
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+                return true;
             }
         }
         return false;
     }
-
-    public BluetoothAutoPairService() {
-        super("HelloIntentService");
-    }
-
-    private void pairSpecialDevice() {
-        if (!mBluetoothAdapter.isDiscovering()) {
-            Log("the bluetooth dont't discovering,startDiscovery!");
-            mBluetoothAdapter.startDiscovery();
-        }
-    }
-
-    private boolean isSpecialDevice(BluetoothDevice bd) {
-        return bd.getAddress().startsWith(mBtMacPrefix) &&
-               bd.getBluetoothClass().toString().equals(mBtClass);
-    }
-
-    static public boolean createBond(Class btClass,BluetoothDevice device) throws Exception {
-        Method createBondMethod = btClass.getMethod("createBond");
-        Boolean returnValue = (Boolean) createBondMethod.invoke(device);
-        return returnValue.booleanValue();
-    }
-
-    private BluetoothProfile.ServiceListener mServiceConnection =
-            new BluetoothProfile.ServiceListener() {
-
-        @Override
-        public void onServiceDisconnected(int profile) {
-            Log("Bluetooth service disconnected");
-        }
-
-        @Override
-        public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (DEBUG) {
-                Log("Connection made to bluetooth proxy.");
-            }
-            mService = (BluetoothInputDevice)proxy;
-        }
-    };
-
-    private void connected(BluetoothDevice device) throws Exception {
-        if (mService != null && device != null) {
-            Log("Connecting to target: " + device.getAddress());
-            mService.connect(device);
-            mService.setPriority(device, BluetoothProfile.PRIORITY_AUTO_CONNECT);
-        }
-    }
-
-    private BroadcastReceiver BluetoothReciever = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
-                Log("Bluetooth State has changed!");
-            } else if(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED.equals(intent.getAction())) {
-                Log("ACTION_SCAN_MODE_CHANGED!");
-            }
-        }
-    };
-
-    private BroadcastReceiver BtDiscoveryReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(intent.getAction())) {
-                Log("ACTION_DISCOVERY_STARTED!");
-            } else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) {
-                Log("ACTION_DISCOVERY_FINISHED!");
-            } else if(BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
-                Log("ACTION_FOUND!");
-                BluetoothDevice btDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                Log("btDevice = " + btDevice.getName() + " Address=" + btDevice.
-                                    getAddress() + " class=" + btDevice.
-                                    getBluetoothClass().toString());
-                if (btDevice != null) {
-                    if (isSpecialDevice(btDevice)) {
-                        mBluetoothAdapter.cancelDiscovery();
-                        if (btDevice.getBondState() == BluetoothDevice.BOND_NONE) {
-                            Log("RemoteDevice = " + btDevice.getName() + " Address=" + btDevice.
-                                    getAddress() + " class=" + btDevice.
-                                    getBluetoothClass().toString());
-                            RemoteDevice = mBluetoothAdapter.
-                                getRemoteDevice(btDevice.getAddress());
-                            try {
-                                Log("start bond!");
-                                createBond(RemoteDevice.getClass(), RemoteDevice);
-                                } catch (Exception e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }
-            } else if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())) {
-                Log("ACTION_BOND_STATE_CHANGED!");
-                if (RemoteDevice != null)
-                {
-                    if (RemoteDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
-                        Log("bond Success!");
-                        try {
-                            connected(RemoteDevice);
-                        } catch (Exception e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        }
-    };
 }
