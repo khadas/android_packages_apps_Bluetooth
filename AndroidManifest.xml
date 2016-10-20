@@ -354,6 +354,21 @@
                 <action android:name="android.bluetooth.IBluetoothHeadsetClient" />
             </intent-filter>
         </service>
+
+        <receiver
+		    android:exported="true"
+			android:name=".hid.BluetoothAutoPairReceiver"
+			android:enabled="true">
+			<intent-filter android:priority="1000">
+				<action android:name="android.intent.action.BOOT_COMPLETED" />
+			</intent-filter>
+		</receiver>
+
+		<service
+			android:name = ".hid.BluetoothAutoPairService">
+		</service>
+
+
         <service
             android:process="@string/process"
             android:name=".hfpclient.connserv.HfpClientConnectionService"
