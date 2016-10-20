@@ -47,6 +47,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
+import android.os.SystemProperties;
 
 /**
  * Receives and handles: system broadcasts; Intents from other applications;
@@ -119,6 +120,16 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
             in.setDataAndNormalize(uri);
             context.startActivity(in);
             cancelNotification(context, uri);
+        } else if (action.equals(BluetoothShare.INCOMING_FILE_CONFIRMATION_REQUEST_ACTION)) {
+                if (V) Log.v(TAG, "Receiver INCOMING_FILE_NOTIFICATION");
+
+                if (SystemProperties.getBoolean("ro.platform.has.mbxuimode",false)) {
+                        Uri uri = intent.getData();
+                        Intent in = new Intent(context, BluetoothOppIncomingFileConfirmActivity.class);
+                        in.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        in.setDataAndNormalize(uri);
+                        context.startActivity(in);
+                }
 
         } else if (action.equals(Constants.ACTION_DECLINE)) {
             if (V) Log.v(TAG, "Receiver ACTION_DECLINE");
