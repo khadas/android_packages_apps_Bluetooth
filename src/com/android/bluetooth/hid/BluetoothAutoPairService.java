@@ -142,7 +142,7 @@ public class BluetoothAutoPairService extends IntentService {
                             " class=" + btDevice.getBluetoothClass().toString()+"rssi:"+(short)rssi);
                             RemoteDevice = mBluetoothAdapter.getRemoteDevice(btDevice.getAddress());
                             Intent intent = new Intent();
-                            intent.setAction(BluetoothInputDevice.ACTION_ADD_DEVICE_ACTION);
+                            intent.setAction(ACTION_ADD_DEVICE_ACTION);
                             intent.putExtra(BluetoothDevice.EXTRA_DEVICE, RemoteDevice);
                             intent.putExtra(BluetoothDevice.EXTRA_RSSI, (short)rssi);
                             intent.putExtra(BluetoothDevice.EXTRA_NAME, btDevice.getName());
