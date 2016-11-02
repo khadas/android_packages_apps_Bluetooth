@@ -24,8 +24,6 @@ import java.util.Set;
 @SuppressLint("NewApi")
 public class BluetoothAutoPairService extends IntentService {
     private static final String TAG = "BluetoothAutoPairService";
-    public static final String ACTION_ADD_DEVICE_ACTION =
-    "android.bluetooth.input.profile.action.ACTION_ADD_DEVICE_ACTION";
     private static BluetoothDevice RemoteDevice;
     private String mBtMacPrefix;
     private String mBtClass;
@@ -142,7 +140,7 @@ public class BluetoothAutoPairService extends IntentService {
                             " class=" + btDevice.getBluetoothClass().toString()+"rssi:"+(short)rssi);
                             RemoteDevice = mBluetoothAdapter.getRemoteDevice(btDevice.getAddress());
                             Intent intent = new Intent();
-                            intent.setAction(ACTION_ADD_DEVICE_ACTION);
+                            intent.setAction(BluetoothDevice.ACTION_FOUND);
                             intent.putExtra(BluetoothDevice.EXTRA_DEVICE, RemoteDevice);
                             intent.putExtra(BluetoothDevice.EXTRA_RSSI, (short)rssi);
                             intent.putExtra(BluetoothDevice.EXTRA_NAME, btDevice.getName());
