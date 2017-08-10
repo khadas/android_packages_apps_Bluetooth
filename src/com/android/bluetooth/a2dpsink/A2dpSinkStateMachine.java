@@ -816,6 +816,13 @@ final class A2dpSinkStateMachine extends StateMachine {
             intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
 //FIXME            intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
             mContext.sendBroadcast(intent, ProfileService.BLUETOOTH_PERM);
+
+            intent = new Intent("android.bluetooth.a2dp.sink.profile.action.CONNECTION_STATE_CHANGED");
+            intent.putExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, prevState);
+            intent.putExtra(BluetoothProfile.EXTRA_STATE, state);
+            intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+            mContext.sendBroadcast(intent, ProfileService.BLUETOOTH_PERM);
+
             log("Connection state " + device + ": " + prevState + "->" + state);
             mService.notifyProfileConnectionStateChanged(device, BluetoothProfile.A2DP_SINK,
                     state, prevState);

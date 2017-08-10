@@ -357,6 +357,15 @@ final class RemoteDevices {
         mAdapterService.sendBroadcastMultiplePermissions(intent,
                 new String[] {AdapterService.BLUETOOTH_PERM,
                         android.Manifest.permission.ACCESS_COARSE_LOCATION});
+
+        Intent rkintent = new Intent("rk.bluetooth.device.action.FOUND");
+        rkintent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+        rkintent.putExtra(BluetoothDevice.EXTRA_CLASS,
+            new BluetoothClass(deviceProp.mBluetoothClass));
+        rkintent.putExtra(BluetoothDevice.EXTRA_RSSI, deviceProp.mRssi);
+        rkintent.putExtra(BluetoothDevice.EXTRA_NAME, deviceProp.mName);
+
+        mAdapterService.sendBroadcast(rkintent, mAdapterService.BLUETOOTH_PERM);
     }
 
     void aclStateChangeCallback(int status, byte[] address, int newState) {
