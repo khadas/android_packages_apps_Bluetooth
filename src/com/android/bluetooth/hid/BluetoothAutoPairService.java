@@ -26,6 +26,7 @@ public class BluetoothAutoPairService extends IntentService {
     private static final String TAG = "BluetoothAutoPairService";
     private static BluetoothDevice RemoteDevice;
     private String mBtMacPrefix;
+    private String mBtNamePrefix;
     private String mBtClass;
     private String mBtCallback;
     private BluetoothInputDevice mService = null;
@@ -88,6 +89,7 @@ public class BluetoothAutoPairService extends IntentService {
                         } else {
                             Log("Remote Device bond failed!");
                         }
+			Thread.sleep(1000);
                         int bondState = RemoteDevice.getBondState();
                         if ( bondState == BluetoothDevice.BOND_BONDED ) {
                             connected(RemoteDevice);
@@ -113,12 +115,19 @@ public class BluetoothAutoPairService extends IntentService {
         Log("getSpecialDeviceInfo mBtMacPrefix:"+mBtMacPrefix);
         mBtClass = SystemProperties.get("ro.autoconnectbt.btclass");
         Log("getSpecialDeviceInfo mBtClass:"+mBtClass);
-        return (!mBtMacPrefix.isEmpty() && !mBtClass.isEmpty());
+	mBtNamePrefix = SystemProperties.get("ro.autoconnectbt.nameprefix");
+        Log("getSpecialDeviceInfo mBtNamePrefix:"+mBtNamePrefix);
+        return (!mBtNamePrefix.isEmpty() && !mBtClass.isEmpty());
     }
     private boolean isSpecialDevice(BluetoothDevice bd) {
         //return bd.getAddress().startsWith(mBtMacPrefix) &&
         //    bd.getBluetoothClass().toString().equals(mBtClass);
-        return bd.getAddress().startsWith(mBtMacPrefix);
+        Log("get bd.getName:"+bd.getName());
+        Log("get bd.getAddress:"+bd.getAddress());
+        if(null == bd.getName())
+              return false;
+
+        return  (bd.getName().startsWith(mBtNamePrefix) || bd.getAddress().startsWith(mBtMacPrefix));
     }
     private BluetoothAdapter.LeScanCallback mLeScanCallback =
     new BluetoothAdapter.LeScanCallback(){
