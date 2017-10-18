@@ -15,6 +15,10 @@ import android.bluetooth.BluetoothInputDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.IntentFilter;
 import android.os.SystemProperties;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
+import android.view.Gravity;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.lang.reflect.Method;
@@ -38,6 +42,9 @@ public class BluetoothAutoPairService extends IntentService {
     private boolean mBondFlag   = true;
     private static Timer timer  = null;
     static final long SNAPSHOT_INTERVAL = 30 * 1000;
+    private static final String CONNECTING_TO_REMOTE = "Auto Connecting to Amlogic Remote...";
+    private Handler mHandler;
+    private Toast toast;
     //private LeDeviceListAdapter mLeDeviceListAdapter;
     private void Log(String msg) {
         if (DEBUG) {
@@ -47,6 +54,7 @@ public class BluetoothAutoPairService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         Log("onHandleIntent begin");
+        mHandler = new Handler(Looper.getMainLooper());
         if (!getSpecialDeviceInfo()) {
             Log("getSpecialDeviceInfo fail!");
             return;
@@ -79,6 +87,7 @@ public class BluetoothAutoPairService extends IntentService {
                     }
                 }
                 Log("Cancel Scan!");
+                timer.cancel();
                 mBluetoothAdapter.stopLeScan(mLeScanCallback);
                 if ( mBondFlag == true ) {
                 try {
@@ -89,17 +98,24 @@ public class BluetoothAutoPairService extends IntentService {
                         } else {
                             Log("Remote Device bond failed!");
                         }
-			Thread.sleep(1000);
+                        Thread.sleep(1000);
                         int bondState = RemoteDevice.getBondState();
                         if ( bondState == BluetoothDevice.BOND_BONDED ) {
                             connected(RemoteDevice);
                         } else {
                             Log("Remote Device has no bond!");
+                            int mConnetFail=0;
                             while ( bondState != BluetoothDevice.BOND_BONDED ) {
+                                createBond( RemoteDevice.getClass(), RemoteDevice );
                                 Thread.sleep(1000);
                                 bondState = RemoteDevice.getBondState();
                                 Log.d(TAG,"Renjun.xu add waitting BT bond...");
-                        }
+                                mConnetFail++;
+                                if ( mConnetFail > 5 ) {
+                                    Log.d(TAG,"waitting BT bond fail ...");
+                                    break;
+                                }
+                            }
                             connected(RemoteDevice);
                         }
                     } catch (Exception e) {
@@ -124,9 +140,10 @@ public class BluetoothAutoPairService extends IntentService {
         //    bd.getBluetoothClass().toString().equals(mBtClass);
         Log("get bd.getName:"+bd.getName());
         Log("get bd.getAddress:"+bd.getAddress());
-        if(null == bd.getName())
-              return false;
-
+        if ( null == bd.getName() ) {
+           Log("get bd.getName fail");
+           return false;
+        }
         return  (bd.getName().startsWith(mBtNamePrefix) || bd.getAddress().startsWith(mBtMacPrefix));
     }
     private BluetoothAdapter.LeScanCallback mLeScanCallback =
@@ -171,6 +188,8 @@ public class BluetoothAutoPairService extends IntentService {
             if (mService.connect(device)) {
                 mService.setPriority( device, BluetoothProfile.PRIORITY_AUTO_CONNECT );
                 timer.cancel();
+                showToast(CONNECTING_TO_REMOTE);
+                Log("connect ok and show toast!");
             } else {
                 Log("connect no!");
             }
@@ -240,5 +259,19 @@ public class BluetoothAutoPairService extends IntentService {
             }
         }
         return false;
+    }
+
+
+     private void showToast(final String text) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (toast != null)
+                    toast.cancel();
+                toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT);
+                toast.show();
+                Log("Toast show ");
+            }
+        });
     }
 }
