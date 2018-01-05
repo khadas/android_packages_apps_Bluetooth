@@ -52,6 +52,7 @@ import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;
 
 import java.util.HashMap;
+import android.os.SystemProperties;
 
 /**
  * This class handles the updating of the Notification Manager for the cases
@@ -568,6 +569,9 @@ class BluetoothOppNotification {
             Intent baseIntent = new Intent().setDataAndNormalize(contentUri)
                     .setClassName(Constants.THIS_PACKAGE_NAME,
                             BluetoothOppReceiver.class.getName());
+            if (SystemProperties.get("ro.target.product","box").equals("box")) {
+                mContext.sendBroadcast(new Intent(baseIntent).setAction(Constants.ACTION_INCOMING_FILE_CONFIRM));
+            } else {
             Notification.Action actionDecline =
                     new Notification.Action.Builder(Icon.createWithResource(mContext,
                             R.drawable.ic_decline),
@@ -648,6 +652,7 @@ class BluetoothOppNotification {
                             .setPublicVersion(public_n)
                             .build();
             mNotificationMgr.notify(NOTIFICATION_ID_PROGRESS, n);
+            }
         }
         cursor.close();
     }
