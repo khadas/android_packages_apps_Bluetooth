@@ -50,6 +50,7 @@ import android.util.Log;
 import com.android.bluetooth.R;
 
 import java.util.HashMap;
+import android.os.SystemProperties;
 
 /**
  * This class handles the updating of the Notification Manager for the cases
@@ -556,44 +557,48 @@ class BluetoothOppNotification {
             Intent baseIntent = new Intent().setDataAndNormalize(contentUri)
                     .setClassName(Constants.THIS_PACKAGE_NAME,
                             BluetoothOppReceiver.class.getName());
-            Notification.Action actionDecline =
-                    new Notification.Action.Builder(R.drawable.ic_decline,
-                            mContext.getText(R.string.incoming_file_confirm_cancel),
-                            PendingIntent.getBroadcast(mContext, 0,
-                                    new Intent(baseIntent).setAction(Constants.ACTION_DECLINE),
-                                    0)).build();
-            Notification.Action actionAccept = new Notification.Action.Builder(R.drawable.ic_accept,
-                    mContext.getText(R.string.incoming_file_confirm_ok),
-                    PendingIntent.getBroadcast(mContext, 0,
-                            new Intent(baseIntent).setAction(Constants.ACTION_ACCEPT), 0)).build();
-            Notification n =
-                    new Notification.Builder(mContext, OPP_NOTIFICATION_CHANNEL).setOnlyAlertOnce(
-                            true)
-                            .setOngoing(true)
-                            .setWhen(info.mTimeStamp)
-                            .addAction(actionDecline)
-                            .addAction(actionAccept)
-                            .setContentIntent(PendingIntent.getBroadcast(mContext, 0,
-                                    new Intent(baseIntent).setAction(
-                                            Constants.ACTION_INCOMING_FILE_CONFIRM), 0))
-                            .setDeleteIntent(PendingIntent.getBroadcast(mContext, 0,
-                                    new Intent(baseIntent).setAction(Constants.ACTION_HIDE), 0))
-                            .setColor(mContext.getResources()
-                                    .getColor(
-                                            com.android.internal.R.color
-                                                    .system_notification_accent_color,
-                                            mContext.getTheme()))
-                            .setContentTitle(mContext.getText(
-                                    R.string.incoming_file_confirm_Notification_title))
-                            .setContentText(info.mFileName)
-                            .setStyle(new Notification.BigTextStyle().bigText(mContext.getString(
-                                    R.string.incoming_file_confirm_Notification_content,
-                                    info.mDeviceName, info.mFileName)))
-                            .setContentInfo(Formatter.formatFileSize(mContext, info.mTotalBytes))
-                            .setSmallIcon(R.drawable.bt_incomming_file_notification)
-                            .setLocalOnly(true)
-                            .build();
-            mNotificationMgr.notify(NOTIFICATION_ID_PROGRESS, n);
+            if (SystemProperties.get("ro.target.product","box").equals("box")) {
+                mContext.sendBroadcast(new Intent(baseIntent).setAction(Constants.ACTION_INCOMING_FILE_CONFIRM));
+            } else {
+                Notification.Action actionDecline =
+                        new Notification.Action.Builder(R.drawable.ic_decline,
+                                mContext.getText(R.string.incoming_file_confirm_cancel),
+                                PendingIntent.getBroadcast(mContext, 0,
+                                        new Intent(baseIntent).setAction(Constants.ACTION_DECLINE),
+                                        0)).build();
+                Notification.Action actionAccept = new Notification.Action.Builder(R.drawable.ic_accept,
+                        mContext.getText(R.string.incoming_file_confirm_ok),
+                        PendingIntent.getBroadcast(mContext, 0,
+                                new Intent(baseIntent).setAction(Constants.ACTION_ACCEPT), 0)).build();
+                Notification n =
+                        new Notification.Builder(mContext, OPP_NOTIFICATION_CHANNEL).setOnlyAlertOnce(
+                                true)
+                                .setOngoing(true)
+                                .setWhen(info.mTimeStamp)
+                                .addAction(actionDecline)
+                                .addAction(actionAccept)
+                                .setContentIntent(PendingIntent.getBroadcast(mContext, 0,
+                                        new Intent(baseIntent).setAction(
+                                                Constants.ACTION_INCOMING_FILE_CONFIRM), 0))
+                                .setDeleteIntent(PendingIntent.getBroadcast(mContext, 0,
+                                        new Intent(baseIntent).setAction(Constants.ACTION_HIDE), 0))
+                                .setColor(mContext.getResources()
+                                        .getColor(
+                                                com.android.internal.R.color
+                                                        .system_notification_accent_color,
+                                                mContext.getTheme()))
+                                .setContentTitle(mContext.getText(
+                                        R.string.incoming_file_confirm_Notification_title))
+                                .setContentText(info.mFileName)
+                                .setStyle(new Notification.BigTextStyle().bigText(mContext.getString(
+                                        R.string.incoming_file_confirm_Notification_content,
+                                        info.mDeviceName, info.mFileName)))
+                                .setContentInfo(Formatter.formatFileSize(mContext, info.mTotalBytes))
+                              .setSmallIcon(R.drawable.bt_incomming_file_notification)
+                                .setLocalOnly(true)
+                                .build();
+                mNotificationMgr.notify(NOTIFICATION_ID_PROGRESS, n);
+            }
         }
         cursor.close();
     }
