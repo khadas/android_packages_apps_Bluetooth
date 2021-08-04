@@ -317,7 +317,9 @@ class PhonePolicy {
                 connectOtherProfile(device);
             }
             if (nextState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (profileId == BluetoothProfile.A2DP) {
+                if (profileId == BluetoothProfile.A2DP
+                        && (prevState == BluetoothProfile.STATE_CONNECTING
+                        || prevState == BluetoothProfile.STATE_DISCONNECTING)) {
                     mAdapterService.getDatabase().setDisconnection(device);
                 }
                 handleAllProfilesDisconnected(device);
